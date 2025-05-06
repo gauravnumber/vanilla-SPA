@@ -1,0 +1,18 @@
+nav {
+  background: #333;
+  padding: 1em;
+}
+nav a {
+  color: #fff;
+  margin-right: 1em;
+  text-decoration: none;
+}
+nav a:hover {
+  text-decoration: underline;
+}
+#app {
+  padding: 2em;
+  background: #fff;
+  max-width: 600px;
+  margin: 2em auto;
+}
