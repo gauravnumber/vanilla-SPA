@@ -1,63 +1,130 @@
 import { About } from "./About.js";
 import { Contact } from "./Contact.js";
 import { Home } from "./Home.js";
-import { UserDetail } from "./UserDetail.js"; // Assuming you have a UserDetail component
+import { UserDetail } from "./UserDetail.js";
 
-// Route definitions
-const routes = {
-  "/": Home,
-  "/about": About,
-  "/contact": Contact,
-  "/user/:id": UserDetail, // Define the dynamic route for user profiles
-};
+class Router {
+  constructor() {
+    this.routes = new Map();
+    this.middlewares = [];
+    this.app = document.getElementById("app");
 
-// Function to match a path against defined routes
-function matchRoute(path) {
-  for (const routePath in routes) {
-    const routeRegex = new RegExp(
-      "^" + routePath.replace(/:\w+/g, "(\\w+)") + "$"
-    );
-    const match = path.match(routeRegex);
-    if (match) {
-      const params = {};
-      const paramNames = routePath.match(/:(\w+)/g) || [];
-      for (let i = 0; i < paramNames.length; i++) {
-        params[paramNames[i].slice(1)] = match[i + 1];
+    // Bind methods
+    this.handleRoute = this.handleRoute.bind(this);
+    this.navigate = this.navigate.bind(this);
+
+    // Initialize event listeners
+    this.initEventListeners();
+  }
+
+  // Add a route with optional middleware
+  addRoute(path, component, middleware = []) {
+    this.routes.set(path, {
+      component,
+      middleware: Array.isArray(middleware) ? middleware : [middleware],
+    });
+  }
+
+  // Add global middleware
+  use(middleware) {
+    this.middlewares.push(middleware);
+  }
+
+  // Initialize routes
+  initRoutes() {
+    this.addRoute("/", Home);
+    this.addRoute("/about", About);
+    this.addRoute("/contact", Contact);
+    this.addRoute("/user/:id", UserDetail);
+  }
+
+  // Parse route parameters
+  parseParams(routePath, currentPath) {
+    const params = {};
+    const routeParts = routePath.split("/");
+    const pathParts = currentPath.split("/");
+
+    routeParts.forEach((part, index) => {
+      if (part.startsWith(":")) {
+        const paramName = part.slice(1);
+        params[paramName] = pathParts[index];
       }
-      return {
-        component: routes[routePath],
-        params: params,
-      };
+    });
+
+    return params;
+  }
+
+  // Match route with parameters
+  matchRoute(path) {
+    for (const [routePath, route] of this.routes) {
+      const pattern = routePath
+        .replace(/:[^/]+/g, "([^/]+)")
+        .replace(/\//g, "\\/");
+      const regex = new RegExp(`^${pattern}$`);
+
+      if (regex.test(path)) {
+        const params = this.parseParams(routePath, path);
+        return { ...route, params };
+      }
     }
+    return null;
   }
-  return null;
-}
 
-// Render function
-function render(path) {
-  const app = document.getElementById("app");
-  const routeMatch = matchRoute(path);
+  // Handle route changes
+  async handleRoute() {
+    const path = window.location.pathname;
+    const route = this.matchRoute(path);
 
-  if (routeMatch) {
-    app.innerHTML = routeMatch.component(routeMatch.params); // Pass parameters to the component
-  } else {
-    app.innerHTML = `<h1>404</h1><p>Page not found.</p>`;
+    if (!route) {
+      this.app.innerHTML = `<h1>404</h1><p>Page not found.</p>`;
+      return;
+    }
+
+    // Run global middleware
+    for (const middleware of this.middlewares) {
+      const result = await middleware(path);
+      if (result === false) return;
+    }
+
+    // Run route-specific middleware
+    for (const middleware of route.middleware) {
+      const result = await middleware(path, route.params);
+      if (result === false) return;
+    }
+
+    // Render the component
+    this.app.innerHTML = route.component(route.params);
   }
-}
 
-// Navigation handler
-function onNavClick(event) {
-  if (event.target.matches("[data-link]")) {
-    event.preventDefault();
-    const path = event.target.getAttribute("href");
+  // Navigation handler
+  navigate(path) {
     window.history.pushState({}, "", path);
-    render(path);
+    this.handleRoute();
+  }
+
+  // Initialize event listeners
+  initEventListeners() {
+    document.addEventListener("click", (event) => {
+      if (event.target.matches("[data-link]")) {
+        event.preventDefault();
+        const path = event.target.getAttribute("href");
+        this.navigate(path);
+      }
+    });
+
+    window.addEventListener("popstate", () => this.handleRoute());
+  }
+
+  // Start the router
+  start() {
+    this.initRoutes();
+    this.handleRoute();
   }
 }
 
-// Listen for navigation and popstate
-document.addEventListener("click", onNavClick);
-window.addEventListener("popstate", () => render(window.location.pathname));
+// Create and start the router
+const router = new Router();
+router.start();
 
-// Initial render
-render(window.location.pathname);
+// Export for use in other files
+export { router };

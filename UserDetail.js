@@ -1,11 +1,20 @@
 // UserDetail.js
 export function UserDetail(params) {
-  const userId = params.id; // Access the 'id' parameter from the URL
+  const userId = params.id;
 
-  // Fetch user data based on userId or display a placeholder
   return `
-    <h1>User Profile</h1>
-    <p>User ID: ${userId}</p>
-    {/* Add more user details here */}
+    <div class="user-profile">
+      <h1>User Profile</h1>
+      <div class="user-info">
+        <p><strong>User ID:</strong> ${userId}</p>
+        <p><strong>Username:</strong> user_${userId}</p>
+        <p><strong>Email:</strong> user${userId}@example.com</p>
+        <p><strong>Member Since:</strong> ${new Date().toLocaleDateString()}</p>
+      </div>
+      <div class="user-actions">
+        <button onclick="alert('Edit user ${userId}')">Edit Profile</button>
+        <button onclick="alert('Message user ${userId}')">Send Message</button>
+      </div>
+    </div>
   `;
 }

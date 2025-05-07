@@ -3,44 +3,40 @@ const fs = require("fs");
 const path = require("path");
 
 const server = http.createServer((req, res) => {
-  let filePath = path.join(
-    __dirname,
-    req.url === "/" ? "/index.html" : req.url
-  );
-
   // Get the file extension
-  let ext = path.extname(filePath);
+  const ext = path.extname(req.url);
 
-  // Default Content-Type
-  let contentType = "text/html";
-  if (ext === ".css") contentType = "text/css";
-  if (ext === ".js" || ext === ".mjs") contentType = "text/javascript";
+  // Handle static files (js, css, etc.)
+  if (ext) {
+    // Always serve static files from root directory
+    const filePath = path.join(__dirname, req.url.split("/").pop());
+    let contentType = "text/html";
 
-  fs.readFile(filePath, (err, content) => {
-    if (err) {
-      if (err.code === "ENOENT") {
-        // File not found, serve index.html
-        fs.readFile(
-          path.join(__dirname, "index.html"),
-          (error, indexContent) => {
-            if (error) {
-              res.writeHead(500);
-              res.end("Server Error: Could not load index.html");
-            } else {
-              res.writeHead(200, { "Content-Type": "text/html" });
-              res.end(indexContent, "utf-8");
-            }
-          }
-        );
-      } else {
-        res.writeHead(500);
-        res.end("Server Error");
+    // Set content type based on file extension
+    if (ext === ".css") contentType = "text/css";
+    if (ext === ".js" || ext === ".mjs") contentType = "text/javascript";
+
+    fs.readFile(filePath, (err, content) => {
+      if (err) {
+        res.writeHead(404);
+        res.end("File not found");
+        return;
       }
-    } else {
       res.writeHead(200, { "Content-Type": contentType });
       res.end(content, "utf-8");
-    }
-  });
+    });
+  } else {
+    // For all other routes, serve index.html
+    fs.readFile(path.join(__dirname, "index.html"), (err, content) => {
+      if (err) {
+        res.writeHead(500);
+        res.end("Server Error: Could not load index.html");
+        return;
+      }
+      res.writeHead(200, { "Content-Type": "text/html" });
+      res.end(content, "utf-8");
+    });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
