@@ -1,4 +1,3 @@
-// main.js
 import { createStore } from "./store.js";
 
 const store = createStore({ count: 0 });

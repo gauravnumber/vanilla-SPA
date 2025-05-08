@@ -1,35 +1,100 @@
 import { About } from "./About.js";
 import { Contact } from "./Contact.js";
 import { Home } from "./Home.js";
+import { UserDetail } from "./UserDetail.js";
 
-// Route definitions
-const routes = {
-  "/": Home,
-  "/about": About,
-  "/contact": Contact,
-};
+class Router {
+  constructor() {
+    // Store routes and get app container
+    this.routes = {};
+    this.app = document.getElementById("app");
 
-// Render function
-function render(path) {
-  const app = document.getElementById("app");
-  app.innerHTML = routes[path]
-    ? routes[path]()
-    : `<h1>404</h1><p>Page not found.</p>`;
-}
+    // Set up routes
+    this.setupRoutes();
 
-// Navigation handler
-function onNavClick(event) {
-  if (event.target.matches("[data-link]")) {
-    event.preventDefault();
-    const path = event.target.getAttribute("href");
+    // Set up event listeners
+    this.setupEventListeners();
+  }
+
+  // Set up all routes
+  setupRoutes() {
+    this.routes = {
+      "/": Home,
+      "/about": About,
+      "/contact": Contact,
+      "/user/:id": UserDetail,
+    };
+  }
+
+  // Handle route changes
+  handleRoute() {
+    const path = window.location.pathname;
+
+    // Find matching route
+    let matchedRoute = null;
+    let params = {};
+
+    // Check each route
+    for (const [routePath, component] of Object.entries(this.routes)) {
+      // Convert route path to regex pattern
+      const pattern = routePath
+        .replace(/:[^/]+/g, "([^/]+)") // Replace :id with capture group
+        .replace(/\//g, "\\/"); // Escape forward slashes
+
+      const regex = new RegExp(`^${pattern}$`);
+      const match = path.match(regex);
+
+      if (match) {
+        // Extract parameters if any
+        const paramNames = routePath.match(/:[^/]+/g) || [];
+        paramNames.forEach((param, index) => {
+          const paramName = param.slice(1); // Remove the : prefix
+          params[paramName] = match[index + 1];
+        });
+
+        matchedRoute = component;
+        break;
+      }
+    }
+
+    // Render the matched route or 404
+    if (matchedRoute) {
+      this.app.innerHTML = matchedRoute(params);
+    } else {
+      this.app.innerHTML = `<h1>404</h1><p>Page not found.</p>`;
+    }
+  }
+
+  // Handle navigation
+  navigate(path) {
     window.history.pushState({}, "", path);
-    render(path);
+    this.handleRoute();
+  }
+
+  // Set up event listeners
+  setupEventListeners() {
+    // Handle link clicks
+    document.addEventListener("click", (event) => {
+      if (event.target.matches("[data-link]")) {
+        event.preventDefault();
+        const path = event.target.getAttribute("href");
+        this.navigate(path);
+      }
+    });
+
+    // Handle browser back/forward buttons
+    window.addEventListener("popstate", () => this.handleRoute());
+  }
+
+  // Start the router
+  start() {
+    this.handleRoute();
   }
 }
 
-// Listen for navigation and popstate
-document.addEventListener("click", onNavClick);
-window.addEventListener("popstate", () => render(window.location.pathname));
+// Create and start the router
+const router = new Router();
+router.start();
 
-// Initial render
-render(window.location.pathname);
+// Export for use in other files
+export { router };
