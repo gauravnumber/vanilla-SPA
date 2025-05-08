@@ -5,105 +5,75 @@ import { UserDetail } from "./UserDetail.js";
 
 class Router {
   constructor() {
-    this.routes = new Map();
-    this.middlewares = [];
+    // Store routes and get app container
+    this.routes = {};
     this.app = document.getElementById("app");
 
-    // Bind methods
-    this.handleRoute = this.handleRoute.bind(this);
-    this.navigate = this.navigate.bind(this);
+    // Set up routes
+    this.setupRoutes();
 
-    // Initialize event listeners
-    this.initEventListeners();
+    // Set up event listeners
+    this.setupEventListeners();
   }
 
-  // Add a route with optional middleware
-  addRoute(path, component, middleware = []) {
-    this.routes.set(path, {
-      component,
-      middleware: Array.isArray(middleware) ? middleware : [middleware],
-    });
-  }
-
-  // Add global middleware
-  use(middleware) {
-    this.middlewares.push(middleware);
-  }
-
-  // Initialize routes
-  initRoutes() {
-    this.addRoute("/", Home);
-    this.addRoute("/about", About);
-    this.addRoute("/contact", Contact);
-    this.addRoute("/user/:id", UserDetail);
-  }
-
-  // Parse route parameters
-  parseParams(routePath, currentPath) {
-    const params = {};
-    const routeParts = routePath.split("/");
-    const pathParts = currentPath.split("/");
-
-    routeParts.forEach((part, index) => {
-      if (part.startsWith(":")) {
-        const paramName = part.slice(1);
-        params[paramName] = pathParts[index];
-      }
-    });
-
-    return params;
-  }
-
-  // Match route with parameters
-  matchRoute(path) {
-    for (const [routePath, route] of this.routes) {
-      const pattern = routePath
-        .replace(/:[^/]+/g, "([^/]+)")
-        .replace(/\//g, "\\/");
-      const regex = new RegExp(`^${pattern}$`);
-
-      if (regex.test(path)) {
-        const params = this.parseParams(routePath, path);
-        return { ...route, params };
-      }
-    }
-    return null;
+  // Set up all routes
+  setupRoutes() {
+    this.routes = {
+      "/": Home,
+      "/about": About,
+      "/contact": Contact,
+      "/user/:id": UserDetail,
+    };
   }
 
   // Handle route changes
-  async handleRoute() {
+  handleRoute() {
     const path = window.location.pathname;
-    const route = this.matchRoute(path);
 
-    if (!route) {
+    // Find matching route
+    let matchedRoute = null;
+    let params = {};
+
+    // Check each route
+    for (const [routePath, component] of Object.entries(this.routes)) {
+      // Convert route path to regex pattern
+      const pattern = routePath
+        .replace(/:[^/]+/g, "([^/]+)") // Replace :id with capture group
+        .replace(/\//g, "\\/"); // Escape forward slashes
+
+      const regex = new RegExp(`^${pattern}$`);
+      const match = path.match(regex);
+
+      if (match) {
+        // Extract parameters if any
+        const paramNames = routePath.match(/:[^/]+/g) || [];
+        paramNames.forEach((param, index) => {
+          const paramName = param.slice(1); // Remove the : prefix
+          params[paramName] = match[index + 1];
+        });
+
+        matchedRoute = component;
+        break;
+      }
+    }
+
+    // Render the matched route or 404
+    if (matchedRoute) {
+      this.app.innerHTML = matchedRoute(params);
+    } else {
       this.app.innerHTML = `<h1>404</h1><p>Page not found.</p>`;
-      return;
     }
-
-    // Run global middleware
-    for (const middleware of this.middlewares) {
-      const result = await middleware(path);
-      if (result === false) return;
-    }
-
-    // Run route-specific middleware
-    for (const middleware of route.middleware) {
-      const result = await middleware(path, route.params);
-      if (result === false) return;
-    }
-
-    // Render the component
-    this.app.innerHTML = route.component(route.params);
   }
 
-  // Navigation handler
+  // Handle navigation
   navigate(path) {
     window.history.pushState({}, "", path);
     this.handleRoute();
   }
 
-  // Initialize event listeners
-  initEventListeners() {
+  // Set up event listeners
+  setupEventListeners() {
+    // Handle link clicks
     document.addEventListener("click", (event) => {
       if (event.target.matches("[data-link]")) {
         event.preventDefault();
@@ -112,12 +82,12 @@ class Router {
       }
     });
 
+    // Handle browser back/forward buttons
     window.addEventListener("popstate", () => this.handleRoute());
   }
 
   // Start the router
   start() {
-    this.initRoutes();
     this.handleRoute();
   }
 }
