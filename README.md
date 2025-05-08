@@ -129,6 +129,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-Your Name - [@yourtwitter](https://twitter.com/yourtwitter) - email@example.com
+Gaurav Singh - [@gauravnumber](https://x.com/gauravnumber)
 
-Project Link: [https://github.com/yourusername/vanilla-SPA](https://github.com/yourusername/vanilla-SPA)
+Project Link: [https://github.com/gauravnumber/vanilla-SPA](https://github.com/gauravnumber/vanilla-SPA)
