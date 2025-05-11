@@ -1,10 +1,9 @@
-import { fetchWrapper } from "./fetch.js  ";
+import { fetchWrapper } from "./fetch.js";
 
 (async () => {
   const { data, loading, error } = await fetchWrapper(
-    "https://jsonplaceholder.typicode.com/todos/1ll"
+    "https://jsonplaceholder.typicode.com/todos/1"
   );
 
   toast(data?.title);
-  console.log(loading, error);
 })();
